@@ -17,28 +17,43 @@
       flex-direction: column;
     }
     /* Pure pictogram "buttons" – no background, no border */
-    #startBtn, #stopBtn {
+    #startBtn {
       background: none;
       border: none;
-      font-size: 10rem; /* extra large */
+      font-size: 10rem;
       cursor: pointer;
       padding: 40px;
       line-height: 1;
     }
-    #startBtn:active, #stopBtn:active {
+    #startBtn:active {
+      transform: scale(0.95);
+    }
+    #stopBtn {
+      background: none;
+      border: none;
+      font-size: 6rem;
+      cursor: pointer;
+      padding: 20px;
+      margin: 10px auto 5px; /* reduced bottom margin */
+      line-height: 1;
+    }
+    #stopBtn:active {
       transform: scale(0.95);
     }
     #plusBtn { 
       background: #2196f3; 
       color: white; 
-      width: 180px; 
-      height: 180px; 
+      width: 264px; 
+      height: 264px; 
       border-radius: 50%; 
-      font-size: 5rem;
+      font-size: 6.4rem;
       margin: 40px auto;
       border: none;
       cursor: pointer;
-      box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+      box-shadow: 0 8px 16px rgba(0,0,0,0.3);
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
     #deleteSessionBtn { 
       background: #f44336; 
@@ -50,16 +65,28 @@
       cursor: pointer;
       box-shadow: 0 4px 8px rgba(0,0,0,0.2);
     }
-    #count { font-size: 5rem; margin: 40px 0; }
+    #count { font-size: 5rem; margin: 40px 0 20px 0; }
     .screen { display: none; flex-direction: column; min-height: 100vh; }
     #mainScreen { 
       display: flex; 
       flex-direction: column;
-      justify-content: center; /* vertical center when inactive */
-      align-items: center;     /* horizontal center */
+      justify-content: center;
+      align-items: center;
     }
     #mainScreen.active {
-      justify-content: space-between;
+      justify-content: flex-start;
+    }
+    #activeSection {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      width: 100%;
+    }
+    #bottomSection {
+      margin-top: auto;
+      padding-bottom: 20px;
     }
     ul { list-style: none; padding: 0; flex: 1; overflow-y: auto; margin: 20px 0; }
     li {
@@ -71,6 +98,13 @@
       box-shadow: 0 2px 6px rgba(0,0,0,0.1);
       cursor: pointer;
       text-align: left;
+    }
+    a.history-link { 
+      color: #ff9800; 
+      text-decoration: none; 
+      font-size: 1.4rem; 
+      margin: 10px 0 20px 0; 
+      display: block; 
     }
     a.back-btn { 
       color: #ff9800; 
@@ -100,14 +134,14 @@
   <div id="mainScreen" class="screen">
     <button id="startBtn">🍻</button>
 
-    <div id="activeSession" style="display:none;">
+    <div id="activeSection" style="display:none;">
       <div id="count">🍺 0</div>
       <button id="plusBtn">+</button>
     </div>
 
-    <div id="bottomSection">
-      <button id="stopBtn" style="display:none;">🥴</button>
-      <a href="javascript:void(0)" onclick="location.hash='history'">View History →</a>
+    <div id="bottomSection" style="display:none;">
+      <button id="stopBtn">🥴</button>
+      <a href="javascript:void(0)" class="history-link" onclick="location.hash='history'">View History →</a>
     </div>
   </div>
 
@@ -124,7 +158,6 @@
       <button id="deleteSessionBtn">Delete this session</button>
     </div>
 
-    <!-- Always visible Back button -->
     <a href="javascript:void(0)" class="back-btn" onclick="location.hash='';">← Back to Logger</a>
   </div>
 
@@ -135,7 +168,7 @@
     const plusBtn = document.getElementById('plusBtn');
     const stopBtn = document.getElementById('stopBtn');
     const countDisplay = document.getElementById('count');
-    const activeSession = document.getElementById('activeSession');
+    const activeSection = document.getElementById('activeSection');
     const bottomSection = document.getElementById('bottomSection');
     const sessionList = document.getElementById('sessionList');
     const historyList = document.getElementById('historyList');
@@ -185,9 +218,9 @@
         drinkTimes: []
       };
       countDisplay.textContent = '🍺 0';
-      activeSession.style.display = 'block';
       startBtn.style.display = 'none';
-      stopBtn.style.display = 'block';
+      activeSection.style.display = 'flex';
+      bottomSection.style.display = 'block';
       mainScreen.classList.add('active');
     };
 
@@ -209,9 +242,9 @@
 
     function resetToMain() {
       currentSession = null;
-      activeSession.style.display = 'none';
+      activeSection.style.display = 'none';
+      bottomSection.style.display = 'none';
       startBtn.style.display = 'block';
-      stopBtn.style.display = 'none';
       mainScreen.classList.remove('active');
       location.hash = '';
     }

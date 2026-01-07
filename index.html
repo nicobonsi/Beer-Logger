@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>🍺 Logger</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      background: #fff8e1;
+      margin: 0;
+      padding: 20px;
+      color: #333;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    /* Pure pictogram "buttons" – no background, no border */
+    #startBtn, #stopBtn {
+      background: none;
+      border: none;
+      font-size: 10rem; /* extra large */
+      cursor: pointer;
+      padding: 40px;
+      line-height: 1;
+    }
+    #startBtn:active, #stopBtn:active {
+      transform: scale(0.95);
+    }
+    #plusBtn { 
+      background: #2196f3; 
+      color: white; 
+      width: 180px; 
+      height: 180px; 
+      border-radius: 50%; 
+      font-size: 5rem;
+      margin: 40px auto;
+      border: none;
+      cursor: pointer;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    }
+    #deleteSessionBtn { 
+      background: #f44336; 
+      color: white; 
+      font-size: 1.6rem; 
+      padding: 15px; 
+      border: none;
+      border-radius: 12px;
+      cursor: pointer;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    }
+    #count { font-size: 5rem; margin: 40px 0; }
+    .screen { display: none; flex-direction: column; min-height: 100vh; }
+    #mainScreen { 
+      display: flex; 
+      flex-direction: column;
+      justify-content: center; /* vertical center when inactive */
+      align-items: center;     /* horizontal center */
+    }
+    #mainScreen.active {
+      justify-content: space-between;
+    }
+    ul { list-style: none; padding: 0; flex: 1; overflow-y: auto; margin: 20px 0; }
+    li {
+      background: white;
+      margin: 12px auto;
+      padding: 16px;
+      max-width: 600px;
+      border-radius: 10px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+      cursor: pointer;
+      text-align: left;
+    }
+    a.back-btn { 
+      color: #ff9800; 
+      text-decoration: none; 
+      font-size: 1.6rem; 
+      margin: 30px 0; 
+      display: block; 
+    }
+    .history-title {
+      font-size: 6rem;
+      margin: 20px 0;
+    }
+    .detail-view {
+      background: white;
+      padding: 20px;
+      margin: 20px auto;
+      max-width: 600px;
+      border-radius: 10px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+      text-align: left;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Main Page -->
+  <div id="mainScreen" class="screen">
+    <button id="startBtn">🍻</button>
+
+    <div id="activeSession" style="display:none;">
+      <div id="count">🍺 0</div>
+      <button id="plusBtn">+</button>
+    </div>
+
+    <div id="bottomSection">
+      <button id="stopBtn" style="display:none;">🥴</button>
+      <a href="javascript:void(0)" onclick="location.hash='history'">View History →</a>
+    </div>
+  </div>
+
+  <!-- History Page -->
+  <div id="historyScreen" class="screen">
+    <div class="history-title">📆</div>
+    
+    <div id="historyList">
+      <ul id="sessionList"></ul>
+    </div>
+
+    <div id="detailView" style="display:none;">
+      <div class="detail-view" id="details"></div>
+      <button id="deleteSessionBtn">Delete this session</button>
+    </div>
+
+    <!-- Always visible Back button -->
+    <a href="javascript:void(0)" class="back-btn" onclick="location.hash='';">← Back to Logger</a>
+  </div>
+
+  <script>
+    const mainScreen = document.getElementById('mainScreen');
+    const historyScreen = document.getElementById('historyScreen');
+    const startBtn = document.getElementById('startBtn');
+    const plusBtn = document.getElementById('plusBtn');
+    const stopBtn = document.getElementById('stopBtn');
+    const countDisplay = document.getElementById('count');
+    const activeSession = document.getElementById('activeSession');
+    const bottomSection = document.getElementById('bottomSection');
+    const sessionList = document.getElementById('sessionList');
+    const historyList = document.getElementById('historyList');
+    const detailView = document.getElementById('detailView');
+    const details = document.getElementById('details');
+    const deleteSessionBtn = document.getElementById('deleteSessionBtn');
+
+    let currentSession = null;
+    let currentDetailSession = null;
+
+    function serializeSession(session) {
+      return {
+        date: session.date,
+        startTime: session.startTime.toISOString(),
+        endTime: session.endTime.toISOString(),
+        drinks: session.drinks,
+        drinkTimes: session.drinkTimes.map(t => t.toISOString())
+      };
+    }
+
+    function deserializeSession(saved) {
+      return {
+        date: saved.date,
+        startTime: new Date(saved.startTime),
+        endTime: new Date(saved.endTime),
+        drinks: saved.drinks,
+        drinkTimes: saved.drinkTimes.map(t => new Date(t))
+      };
+    }
+
+    function loadSessions() {
+      const saved = localStorage.getItem('beerSessions');
+      if (!saved) return [];
+      return JSON.parse(saved).map(deserializeSession);
+    }
+
+    function saveSessions(sessions) {
+      const serialized = sessions.map(serializeSession);
+      localStorage.setItem('beerSessions', JSON.stringify(serialized));
+    }
+
+    startBtn.onclick = () => {
+      currentSession = {
+        date: new Date().toLocaleDateString(),
+        startTime: new Date(),
+        drinks: 0,
+        drinkTimes: []
+      };
+      countDisplay.textContent = '🍺 0';
+      activeSession.style.display = 'block';
+      startBtn.style.display = 'none';
+      stopBtn.style.display = 'block';
+      mainScreen.classList.add('active');
+    };
+
+    plusBtn.onclick = () => {
+      if (!currentSession) return;
+      currentSession.drinks++;
+      currentSession.drinkTimes.push(new Date());
+      countDisplay.textContent = `🍺 ${currentSession.drinks}`;
+    };
+
+    stopBtn.onclick = () => {
+      if (!currentSession) return;
+      currentSession.endTime = new Date();
+      const sessions = loadSessions();
+      sessions.unshift(currentSession);
+      saveSessions(sessions);
+      resetToMain();
+    };
+
+    function resetToMain() {
+      currentSession = null;
+      activeSession.style.display = 'none';
+      startBtn.style.display = 'block';
+      stopBtn.style.display = 'none';
+      mainScreen.classList.remove('active');
+      location.hash = '';
+    }
+
+    function loadHistory() {
+      const sessions = loadSessions();
+      sessionList.innerHTML = '';
+      if (sessions.length === 0) {
+        sessionList.innerHTML = '<li style="text-align:center; cursor:default;">No sessions yet — start one! 🍺</li>';
+        return;
+      }
+
+      sessions.forEach((session) => {
+        const li = document.createElement('li');
+
+        const start = session.startTime.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+        const end = session.endTime.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+
+        li.innerHTML = `
+          <strong>${session.date} — 🍺 ${session.drinks}</strong><br>
+          ${start} → ${end}
+        `;
+
+        li.onclick = () => {
+          currentDetailSession = session;
+          showDetail(session);
+        };
+
+        sessionList.appendChild(li);
+      });
+    }
+
+    function showDetail(session) {
+      let drinkList = '<ul style="margin:20px 0; padding-left:20px;">';
+      session.drinkTimes.forEach((time, i) => {
+        drinkList += `<li>🍺 ${i+1}: ${time.toLocaleTimeString()}</li>`;
+      });
+      drinkList += '</ul>';
+
+      const start = session.startTime.toLocaleTimeString();
+      const end = session.endTime.toLocaleTimeString();
+
+      details.innerHTML = `
+        <p><strong>Date:</strong> ${session.date}</p>
+        <p><strong>Total:</strong> 🍺 ${session.drinks}</p>
+        <p><strong>Started:</strong> ${start}</p>
+        <p><strong>Ended:</strong> ${end}</p>
+        <br>
+        <strong>Each drink:</strong>
+        ${drinkList}
+      `;
+
+      historyList.style.display = 'none';
+      detailView.style.display = 'block';
+    }
+
+    deleteSessionBtn.onclick = function() {
+      if (!currentDetailSession) return;
+      if (confirm('Delete this session permanently?')) {
+        const sessions = loadSessions();
+        const updated = sessions.filter(s => s.startTime.getTime() !== currentDetailSession.startTime.getTime());
+        saveSessions(updated);
+        currentDetailSession = null;
+        location.hash = '';
+      }
+    };
+
+    window.addEventListener('hashchange', handleRouting);
+    function handleRouting() {
+      if (location.hash === '#history') {
+        mainScreen.style.display = 'none';
+        historyScreen.style.display = 'flex';
+        historyList.style.display = 'block';
+        detailView.style.display = 'none';
+        loadHistory();
+      } else {
+        mainScreen.style.display = 'flex';
+        historyScreen.style.display = 'none';
+      }
+    }
+
+    handleRouting();
+  </script>
+</body>
+</html>
